@@ -3,8 +3,8 @@
     "description": "addons package for 91kusite",
     "type": "library",
     "require": {
-        "topthink/think-helper": ">=1.0.4",
-        "topthink/think-installer": ">=1.0.10",
+        "topthink/think-helper": "^1.0",
+        "topthink/framework": "5.1.*",
         "php": ">=7.1.9"
     },
     "license": "Apache-2.0",

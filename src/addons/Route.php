@@ -4,9 +4,9 @@ namespace think\addons;
 
 use think\Config;
 use think\exception\HttpException;
-use think\Hook;
+use think\facade\Hook;
 use think\Loader;
-use think\Request;
+use think\facade\Request;
 
 /**
  * 插件执行默认控制器
@@ -29,7 +29,7 @@ class Route
         $controller = $controller ? trim(call_user_func($filter, $controller)) : 'index';
         $action = $action ? trim(call_user_func($filter, $action)) : 'index';
 
-        Hook::listen('addon_begin', $request);
+        Hook::listen('addons_begin', $request);
         if (!empty($addon) && !empty($controller) && !empty($action)) {
             $info = get_addon_info($addon);
             if (!$info) {
@@ -39,12 +39,12 @@ class Route
                 throw new HttpException(500, __('addon %s is disabled', $addon));
             }
             $dispatch = $request->dispatch();
-            if (isset($dispatch['var']) && $dispatch['var']) {
+            // if (isset($dispatch['var']) && $dispatch['var']) {
                 //$request->route($dispatch['var']);
-            }
+            // }
 
             // 设置当前请求的控制器、操作
-            $request->controller($controller)->action($action);
+            $request->setController($controller)->setAction($action);
 
             // 监听addon_module_init
             Hook::listen('addon_module_init', $request);

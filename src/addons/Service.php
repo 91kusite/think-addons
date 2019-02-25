@@ -27,7 +27,7 @@ class Service
      */
     public static function download($name, $extend = [])
     {
-        $addonTmpDir = RUNTIME_PATH . 'addons' . DIRECTORY_SEPARATOR;
+        $addonTmpDir = RUNTIME_PATH . 'addons' . DS;
         if (!is_dir($addonTmpDir)) {
             @mkdir($addonTmpDir, 0755, true);
         }
@@ -76,8 +76,8 @@ class Service
      */
     public static function unzip($name)
     {
-        $file = RUNTIME_PATH . 'addons' . DIRECTORY_SEPARATOR . $name . '.zip';
-        $dir = ADDON_PATH . $name . DIRECTORY_SEPARATOR;
+        $file = RUNTIME_PATH . 'addons' . DS . $name . '.zip';
+        $dir = ADDON_PATH . $name . DS;
         if (class_exists('ZipArchive')) {
             $zip = new ZipArchive;
             if ($zip->open($file) !== TRUE) {
@@ -101,8 +101,8 @@ class Service
      */
     public static function backup($name)
     {
-        $file = RUNTIME_PATH . 'addons' . DIRECTORY_SEPARATOR . $name . '-backup-' . date("YmdHis") . '.zip';
-        $dir = ADDON_PATH . $name . DIRECTORY_SEPARATOR;
+        $file = RUNTIME_PATH . 'addons' . DS . $name . '-backup-' . date("YmdHis") . '.zip';
+        $dir = ADDON_PATH . $name . DS;
         if (class_exists('ZipArchive')) {
             $zip = new ZipArchive;
             $zip->open($file, ZipArchive::CREATE);
@@ -173,7 +173,7 @@ class Service
      */
     public static function importsql($name)
     {
-        $sqlFile = ADDON_PATH . $name . DIRECTORY_SEPARATOR . 'install.sql';
+        $sqlFile = ADDON_PATH . $name . DS . 'install.sql';
         if (is_file($sqlFile)) {
             $lines = file($sqlFile);
             $templine = '';
@@ -209,12 +209,12 @@ class Service
         $addons = get_addon_list();
         $bootstrapArr = [];
         foreach ($addons as $name => $addon) {
-            $bootstrapFile = ADDON_PATH . $name . DIRECTORY_SEPARATOR . 'bootstrap.js';
+            $bootstrapFile = ADDON_PATH . $name . DS . 'bootstrap.js';
             if ($addon['state'] && is_file($bootstrapFile)) {
                 $bootstrapArr[] = file_get_contents($bootstrapFile);
             }
         }
-        $addonsFile = ROOT_PATH . str_replace("/", DIRECTORY_SEPARATOR, "public/assets/js/addons.js");
+        $addonsFile = ROOT_PATH . str_replace("/", DS, "public/assets/js/addons.js");
         if ($handle = fopen($addonsFile, 'w')) {
             $tpl = <<<EOD
 define([], function () {
@@ -227,7 +227,7 @@ EOD;
             throw new Exception("addons.js文件没有写入权限");
         }
 
-        $file = APP_PATH . 'extra' . DIRECTORY_SEPARATOR . 'addons.php';
+        $file = APP_PATH . 'extra' . DS . 'addons.php';
 
         $config = get_addon_autoload_config(true);
         if ($config['autoload'])
@@ -391,7 +391,7 @@ EOD;
             Service::noconflict($name);
         }
 
-        $addonDir = ADDON_PATH . $name . DIRECTORY_SEPARATOR;
+        $addonDir = ADDON_PATH . $name . DS;
 
         // 复制文件
         $sourceAssetsDir = self::getSourceAssetsDir($name);
@@ -493,7 +493,7 @@ EOD;
     {
         $info = get_addon_info($name);
         if ($info['state']) {
-            throw new Exception(__('Please disable addon first'));
+            throw new Exception('Please disable addon first');
         }
         $config = get_addon_config($name);
         if ($config) {
@@ -549,10 +549,10 @@ EOD;
     public static function getGlobalFiles($name, $onlyconflict = false)
     {
         $list = [];
-        $addonDir = ADDON_PATH . $name . DIRECTORY_SEPARATOR;
+        $addonDir = ADDON_PATH . $name . DS;
         // 扫描插件目录是否有覆盖的文件
         foreach (self::getCheckDirs() as $k => $dir) {
-            $checkDir = ROOT_PATH . DIRECTORY_SEPARATOR . $dir . DIRECTORY_SEPARATOR;
+            $checkDir = ROOT_PATH . DS . $dir . DS;
             if (!is_dir($checkDir))
                 continue;
             //检测到存在插件外目录
@@ -590,7 +590,7 @@ EOD;
      */
     protected static function getSourceAssetsDir($name)
     {
-        return ADDON_PATH . $name . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR;
+        return ADDON_PATH . $name . DS . 'assets' . DS;
     }
 
     /**
@@ -600,7 +600,7 @@ EOD;
      */
     protected static function getDestAssetsDir($name)
     {
-        $assetsDir = ROOT_PATH . str_replace("/", DIRECTORY_SEPARATOR, "public/assets/addons/{$name}/");
+        $assetsDir = ROOT_PATH . str_replace("/", DS, "public/assets/addons/{$name}/");
         if (!is_dir($assetsDir)) {
             mkdir($assetsDir, 0755, true);
         }

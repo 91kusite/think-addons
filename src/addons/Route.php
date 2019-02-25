@@ -33,10 +33,10 @@ class Route
         if (!empty($addon) && !empty($controller) && !empty($action)) {
             $info = get_addon_info($addon);
             if (!$info) {
-                throw new HttpException(404, __('addon %s not found', $addon));
+                throw new HttpException(404, sprintf('addon %s not found', $addon));
             }
             if (!$info['state']) {
-                throw new HttpException(500, __('addon %s is disabled', $addon));
+                throw new HttpException(500, sprintf('addon %s is disabled', $addon));
             }
             $dispatch = $request->dispatch();
             // if (isset($dispatch['var']) && $dispatch['var']) {
@@ -53,7 +53,7 @@ class Route
 
             $class = get_addon_class($addon, 'controller', $controller);
             if (!$class) {
-                throw new HttpException(404, __('addon controller %s not found', Loader::parseName($controller, 1)));
+                throw new HttpException(404, sprintf('addon controller %s not found', Loader::parseName($controller, 1)));
             }
 
             $instance = new $class($request);
@@ -68,7 +68,7 @@ class Route
                 $vars = [$action];
             } else {
                 // 操作不存在
-                throw new HttpException(404, __('addon action %s not found', get_class($instance) . '->' . $action . '()'));
+                throw new HttpException(404, sprintf('addon action %s not found', get_class($instance) . '->' . $action . '()'));
             }
 
             Hook::listen('addon_action_begin', $call);

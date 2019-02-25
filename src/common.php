@@ -6,14 +6,13 @@ use think\facade\Config;
 use think\facade\Env;
 use think\facade\Exception;
 use think\facade\Hook;
-use think\facade\Request;
 use think\Loader;
 
 // 插件目录
 define('ADDON_PATH', Env::get('root_path') . DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR . 'addons' . DIRECTORY_SEPARATOR);
 
 // 定义路由
-// Route::any('addons/:addon/[:controller]/[:action]', "\\think\\addons\\Route@execute");
+Route::any('addons/:addon/[:controller]/[:action]', "\\think\\addons\\Route@execute");
 
 // 如果插件目录不存在则创建
 if (!is_dir(ADDON_PATH)) {
@@ -28,6 +27,7 @@ Hook::listen('addon_init');
 
 // 闭包自动识别插件目录配置
 Hook::add('app_init', function () {
+    // print_r(get_addon_list());exit;
     // 获取开关
     $autoload = (bool) Config::get('addons.autoload', false);
     // 非正是返回
@@ -73,28 +73,28 @@ Hook::add('app_init', function () {
     //     Route::domain($domains);
     // }
 
-    // 获取系统配置
-    $hooks = Config::get('debug') ? [] : Cache::get('hooks', []);
-    if (empty($hooks)) {
-        $hooks = (array) Config::get('addons.hooks');
-        // 初始化钩子
-        foreach ($hooks as $key => $values) {
-            if (is_string($values)) {
-                $values = explode(',', $values);
-            } else {
-                $values = (array) $values;
-            }
-            $hooks[$key] = array_filter(array_map('get_addon_class', $values));
-        }
-        Cache::set('hooks', $hooks);
-    }
-    //如果在插件中有定义app_init，则直接执行
-    if (isset($hooks['app_init'])) {
-        foreach ($hooks['app_init'] as $k => $v) {
-            Hook::exec($v, 'app_init');
-        }
-    }
-    Hook::import($hooks, true);
+    // // 获取系统配置
+    // $hooks = Config::get('debug') ? [] : Cache::get('hooks', []);
+    // if (empty($hooks)) {
+    //     $hooks = (array) Config::get('addons.hooks');
+    //     // 初始化钩子
+    //     foreach ($hooks as $key => $values) {
+    //         if (is_string($values)) {
+    //             $values = explode(',', $values);
+    //         } else {
+    //             $values = (array) $values;
+    //         }
+    //         $hooks[$key] = array_filter(array_map('get_addon_class', $values));
+    //     }
+    //     Cache::set('hooks', $hooks);
+    // }
+    // //如果在插件中有定义app_init，则直接执行
+    // if (isset($hooks['app_init'])) {
+    //     foreach ($hooks['app_init'] as $k => $v) {
+    //         Hook::exec($v, 'app_init');
+    //     }
+    // }
+    // Hook::import($hooks, true);
 });
 
 /**
@@ -240,7 +240,7 @@ function get_addon_class($name, $type = 'hook', $class = null)
             $namespace = "\\addons\\" . $name . "\\" . $class;
             break;
     }
-    
+
     return class_exists($namespace) ? $namespace : '';
 }
 
@@ -329,40 +329,8 @@ function addon_url($url, $vars = [], $suffix = true, $domain = false)
             unset($vars[$k]);
         }
     }
-    $val          = "@addons/{$url}";
-    $config       = get_addon_config($addon);
-    $dispatch     = Request::instance()->dispatch();
-    $indomain     = isset($dispatch['var']['indomain']) && $dispatch['var']['indomain'] ? true : false;
-    $domainprefix = $config && isset($config['domain']) && $config['domain'] ? $config['domain'] : '';
-    $rewrite      = $config && isset($config['rewrite']) && $config['rewrite'] ? $config['rewrite'] : [];
-    if ($rewrite) {
-        $path = substr($url, stripos($url, '/') + 1);
-        if (isset($rewrite[$path]) && $rewrite[$path]) {
-            $val = $rewrite[$path];
-            array_walk($params, function ($value, $key) use (&$val) {
-                $val = str_replace("[{$key}]", $value, $val);
-            });
-            $val = str_replace(['^', '$'], '', $val);
-            if (substr($val, -1) === '/') {
-                $suffix = false;
-            }
-        } else {
-            // 如果采用了域名部署,则需要去掉前两段
-            if ($indomain && $domainprefix) {
-                $arr = explode("/", $val);
-                $val = implode("/", array_slice($arr, 2));
-            }
-        }
-    } else {
-        // 如果采用了域名部署,则需要去掉前两段
-        if ($indomain && $domainprefix) {
-            $arr = explode("/", $val);
-            $val = implode("/", array_slice($arr, 2));
-        }
-        foreach ($params as $k => $v) {
-            $vars[substr($k, 1)] = $v;
-        }
-    }
+    $val = "@addons/{$url}";
+
     return url($val, [], $suffix, $domain) . ($vars ? '?' . http_build_query($vars) : '');
 }
 

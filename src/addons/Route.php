@@ -2,11 +2,11 @@
 
 namespace think\addons;
 
-use think\Config;
 use think\exception\HttpException;
+use think\facade\Config;
 use think\facade\Hook;
-use think\Loader;
 use think\facade\Request;
+use think\Loader;
 
 /**
  * 插件执行默认控制器
@@ -23,11 +23,11 @@ class Route
         $request = Request::instance();
         // 是否自动转换控制器和操作名
         $convert = Config::get('url_convert');
-        $filter = $convert ? 'strtolower' : 'trim';
+        $filter  = $convert ? 'strtolower' : 'trim';
 
-        $addon = $addon ? trim(call_user_func($filter, $addon)) : '';
+        $addon      = $addon ? trim(call_user_func($filter, $addon)) : '';
         $controller = $controller ? trim(call_user_func($filter, $controller)) : 'index';
-        $action = $action ? trim(call_user_func($filter, $action)) : 'index';
+        $action     = $action ? trim(call_user_func($filter, $action)) : 'index';
 
         Hook::listen('addons_begin', $request);
         if (!empty($addon) && !empty($controller) && !empty($action)) {
@@ -40,7 +40,7 @@ class Route
             }
             $dispatch = $request->dispatch();
             // if (isset($dispatch['var']) && $dispatch['var']) {
-                //$request->route($dispatch['var']);
+            //$request->route($dispatch['var']);
             // }
 
             // 设置当前请求的控制器、操作

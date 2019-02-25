@@ -2,7 +2,7 @@
 
 namespace think;
 
-use think\Config;
+use think\facade\Config;
 use think\View;
 
 /**
@@ -33,11 +33,11 @@ abstract class Addons
     {
         $name = $this->getName();
         // 获取当前插件目录
-        $this->addons_path = ADDON_PATH . $name . DS;
+        $this->addons_path = ADDON_PATH . $name . DIRECTORY_SEPARATOR;
 
         // 初始化视图模型
         $config     = ['view_path' => $this->addons_path];
-        $config     = array_merge(Config::get('template'), $config);
+        $config     = array_merge(Config::get('template.'), $config);
         $this->view = new View($config, Config::get('view_replace_str'));
 
         // 控制器初始化
@@ -56,16 +56,16 @@ abstract class Addons
         if (empty($name)) {
             $name = $this->getName();
         }
-        $info = Config::get($name, $this->infoRange);
+        $info = Config::get($this->infoRange.'.'.$name);
         if ($info) {
             return $info;
         }
         $info_file = $this->addons_path . 'info.ini';
         if (is_file($info_file)) {
-            $info        = Config::parse($info_file, '', $name, $this->infoRange);
+            $info        = Config::parse($info_file, '', $this->infoRange.'.'.$name);
             $info['url'] = addon_url($name);
         }
-        Config::set($name, $info, $this->infoRange);
+        Config::set($this->infoRange.'.'.$name, $info);
 
         return $info ? $info : [];
     }
@@ -127,7 +127,7 @@ abstract class Addons
         }
         $info = $this->getInfo($name);
         $info = array_merge($info, $value);
-        Config::set($name, $info, $this->infoRange);
+        Config::set($this->infoRange.'.'.$name, $info);
         return $info;
     }
 

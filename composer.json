@@ -15,7 +15,7 @@
     "minimum-stability": "dev",
     "autoload": {
         "psr-4": {
-            "think\\": "src/",
+            "think\\": "src/"
         },
         "files": ["src/common.php", "src/command.php"]
     },

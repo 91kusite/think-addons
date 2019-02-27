@@ -9,7 +9,7 @@ use think\facade\Hook;
 use think\Loader;
 
 // 插件目录
-define('ADDON_PATH', Env::get('root_path') . DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR . 'addons' . DIRECTORY_SEPARATOR);
+define('ADDON_PATH', Env::get('root_path') . 'src' . DIRECTORY_SEPARATOR . 'addons' . DIRECTORY_SEPARATOR);
 
 // 定义路由
 Route::any('addons/:addon/[:controller]/[:action]', "\\think\\addons\\Route@execute");

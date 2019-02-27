@@ -10,6 +10,7 @@ use think\console\Output;
 use think\Exception;
 use think\facade\Config;
 use think\facade\Env;
+use think\addons\Service;
 
 class Install extends Command
 {
@@ -50,28 +51,28 @@ EOT
             $output->writeln('<error>Please set addons\'s name.</error>');
             return false;
         }
-        $basename = basename($addons_name);
 
         $is_sure = $packname = false;
         // 检测是否已经安装
-        if (is_dir(ADDON_PATH . $basename)) {
-            $output->writeln('<info>Nothing to do,because the addons of ' . $basename . ' is installed.</info>');
+        if (is_dir(ADDON_PATH . $addons_name)) {
+            $output->writeln('<info>Nothing to do,because the addons of ' . $addons_name . ' is installed.</info>');
             // 提示是否覆盖
             if (!$output->confirm($input, 'Already installed, confirm replacement?', false)) {
                 $output->writeln("<info>User cancel.</info>");
                 return false;
             }
             // 备份已安装版本
-            $packname = $this->backupToAddons($output, $zip_path, $basename);
+            $packname = $this->backupToAddons($output, $zip_path, $addons_name);
             $is_sure  = true;
         }
 
+        $zip_name = null;
         // 检测是否备份安装
         if (!$input->hasOption('back')) {
             // 版本规定
             if ($input->hasOption('rversion')) {
                 // 指定版本
-                $list = glob($zip_path . self::DS . $basename . '.' . $input->getOption('rversion') . '.zip');
+                $list = glob($zip_path . self::DS . $addons_name . '.' . $input->getOption('rversion') . '.zip');
             } else {
                 // 获取最新版本
                 $list = glob($zip_path . self::DS . $addons_name . '.*');
@@ -79,24 +80,24 @@ EOT
             // 取得最新版本或指定版本
             if ($list) {
                 rsort($list);
-                $addons_name = basename($list[0], '.zip');
+                $zip_name = basename($list[0]);
             }
         } else {
             // 拼接备份包存放位置
-            $addons_name = $addons_name . '.back.' . $input->getOption('back');
+            $zip_name = $addons_name . '-back.' . $input->getOption('back');
         }
         // zip包识别
-        (stripos($addons_name, '.zip') === false) && $addons_name .= '.zip';
+        (stripos($zip_name, '.zip') === false) && $zip_name .= '.zip';
         // 检测安装包是否存在
-        if (!is_file($zip_path . self::DS . $addons_name)) {
-            $output->writeln('<error>addons install error :' . $basename . ' not found!</error>');
+        if (!$zip_name || !is_file($zip_path . self::DS . $zip_name)) {
+            $output->writeln('<error>addons install error :' . $addons_name . ' not found!</error>');
             return false;
         }
 
         // 是否确认安装
         if (!$is_sure && !$input->hasOption('yes')) {
             // 提示是否确认
-            if (!$output->confirm($input, 'Install ' . $basename . ' addons ,sure?', false)) {
+            if (!$output->confirm($input, 'Install ' . $addons_name . ' addons ,sure?', false)) {
                 $output->writeln("<info>User cancel.</info>");
                 return false;
             }
@@ -105,32 +106,32 @@ EOT
         // 执行解包
         try {
             // 开始解包命令处理
-            $command_params = ['public' . self::DS . 'addons' . self::DS . $addons_name];
+            $command_params = ['public' . self::DS . 'addons' . self::DS . $zip_name];
             if ($input->hasOption('password')) {
                 // 存在解包命令
                 $command_params[] = '--password=' . $input->getOption('password');
             }
             // 输出目录
-            $outpath          = implode(self::DS, ['src', 'addons', $basename]);
-            $command_params[] = '--outpath=' . $outpath;
+            $command_params[] = '--outpath=' . implode(self::DS, ['src', 'addons', $addons_name]);
             $log              = [];
             Console::call('zip:unpack', $command_params);
             // 当前安装包信息
-            $info_file = ADDON_PATH . $basename . self::DS . 'info.ini';
-            if (!is_file($info_file)) {
+            $info_file = ADDON_PATH . $addons_name . self::DS . 'info.ini';
+            if (!is_file($info_file) || true !== Service::importsql($addons_name,'install')) {
                 // 删除目录及文件
-                $this->remove(ADDON_PATH . $basename);
+                $this->remove(ADDON_PATH . $addons_name);
                 // 恢复备份
-                $this->rollbackToAddons($zip_path, $packname, $basename);
+                $this->rollbackToAddons($zip_path, $packname, $addons_name);
                 throw new Exception('install error');
             }
 
             // 加载配置文件
-            $info           = Config::parse($info_file, '', "addon-info-{$basename}");
+            $info           = Config::parse($info_file, '', "addon-info-{$addons_name}");
             $varsion        = $info['version'];
-            $log[$basename] = $varsion;
+            $log[$addons_name] = $varsion;
         } catch (Exception $e) {
-            $output->writeln("<error>Install error addons:" . $basename . ",Please try again.</error>");
+            echo $e->getMessage();
+            $output->writeln("<error>Install " . $addons_name . " addons error,Please try again.</error>");
             $log = [];
             return false;
         } finally {
@@ -143,7 +144,7 @@ EOT
                 $default = include $installed_file;
                 $log     = array_merge($default, $log);
                 file_put_contents($installed_file, "<?php \r\n return " . var_export_min($log, true) . " \r\n ?>");
-                $output->writeln("<info>Install addons " . $basename . " success!</info>");
+                $output->writeln("<info>Install addons " . $addons_name . " success!</info>");
             }
         }
 
@@ -186,17 +187,17 @@ EOT
      * @DateTime 2019-02-26
      * @return   [type]                         [description]
      */
-    protected function backupToAddons($output, $savepath, $savename)
+    protected function backupToAddons($output, $savepath, $addons_name)
     {
         $output->writeln("<info>Please waiting...</info>");
         // 备份当前插件
-        $output->writeln("<info>Backup addons: " . $savename . "...</info>");
+        $output->writeln("<info>Backup addons: " . $addons_name . "...</info>");
         $command_params = [];
         // 包名
-        $packname         = $savename . '.back.' . date('YmdHis') . '.zip';
+        $packname         = $addons_name . '.back.' . date('YmdHis') . '.zip';
         $command_params[] = $packname;
         // 打包路径
-        $command_params[] = implode(self::DS, ['src', 'addons', $savename]);
+        $command_params[] = implode(self::DS, ['src', 'addons', $addons_name]);
         // 包保存路径
         $outpath          = 'public' . self::DS . 'addons' . self::DS;
         $command_params[] = '--outpath=' . $outpath;
@@ -206,11 +207,11 @@ EOT
             // 检测是否已经备份
             if (is_file($savepath . self::DS . $packname)) {
                 // 删除旧目录
-                $this->remove(ADDON_PATH . $savename);
+                $this->remove(ADDON_PATH . $addons_name);
                 return $packname;
             }
         } catch (\Exception $e) {
-            $output->writeln("<error>Backup error addons:" . $savename . ".Please try again.</error>");
+            $output->writeln("<error>Backup error addons:" . $addons_name . ".Please try again.</error>");
         }
         return false;
     }
@@ -221,14 +222,14 @@ EOT
      * @DateTime 2019-02-26
      * @return   [type]                         [description]
      */
-    protected function rollbackToAddons($savepath, $packname, $basename)
+    protected function rollbackToAddons($savepath, $packname, $addons_name)
     {
         if ($packname !== false) {
             $command_params   = [];
             $command_params[] = 'public' . self::DS . 'addons' . self::DS . $packname;
-            $command_params[] = '--outpath=' . implode(self::DS, ['src', 'addons', $basename]);
+            $command_params[] = '--outpath=' . implode(self::DS, ['src', 'addons', $addons_name]);
             Console::call('zip:unpack', $command_params);
-            if (is_dir(ADDON_PATH . $basename)) {
+            if (is_dir(ADDON_PATH . $addons_name)) {
                 unlink($savepath . self::DS . $packname);
             }
         }

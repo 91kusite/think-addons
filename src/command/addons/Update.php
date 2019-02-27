@@ -1,6 +1,7 @@
 <?php
 namespace think\command\addons;
 
+use think\addons\Service;
 use think\Console;
 use think\console\Command;
 use think\console\Input;
@@ -51,18 +52,24 @@ class Update extends Command
 
         // 检测最新版本
         // 插件包检测
+        /** todo:在线监测新版本并下载 --start ,以下为模拟*/
         $zip_path = Env::get('root_path') . 'public' . self::DS . 'addons';
         $zips     = glob($zip_path . self::DS . $addons_name . '.*.*.*.zip');
-
+        if (!$zips) {
+            $output->writeln('<info>The current version is up to date.</info>');
+            return false;
+        }
         $update_zip = null;
         for ($i = 0; $i < count($zips); $i++) {
             $file_basename = basename($zips[$i], '.zip');
-            $_version = substr($file_basename, stripos($file_basename, '.') + 1);
+            $_version      = substr($file_basename, stripos($file_basename, '.') + 1);
             if ($_version > $version) {
-                $update_zip = $file_basename;
+                $update_zip = basename($zips[$i]);
                 break;
             }
         }
+
+        /** todo:在线监测新版本并下载 --end */
 
         if (!$update_zip) {
             $output->writeln('<info>The current version is up to date.</info>');
@@ -87,15 +94,15 @@ class Update extends Command
             // 存在解包命令
             $command_params[] = '-p=' . $input->getOption('password');
         }
-        $outpath          = implode(self::DS, ['src', 'addons', $addons_name]);
-        $command_params[] = '--outpath=' . $outpath;
+
+        $command_params[] = '--outpath=' . implode(self::DS, ['src', 'addons', $addons_name]);
         // 执行解包
         try {
             $log = [];
             Console::call('zip:unpack', $command_params);
             // 当前安装包信息
             $info_file = ADDON_PATH . $addons_name . self::DS . 'info.ini';
-            if (!is_file($info_file)) {
+            if (!is_file($info_file) || true !== Service::importsql($addons_name, 'update')) {
                 // 删除目录及文件
                 $this->remove(ADDON_PATH . $addons_name);
                 // 恢复备份
@@ -164,17 +171,17 @@ class Update extends Command
      * @DateTime 2019-02-26
      * @return   [type]                         [description]
      */
-    protected function backupToAddons($output, $savepath, $savename)
+    protected function backupToAddons($output, $savepath, $addons_name)
     {
         $output->writeln("<info>Please waiting...</info>");
         // 备份当前插件
-        $output->writeln("<info>Backup addons: " . $savename . "...</info>");
+        $output->writeln("<info>Backup addons: " . $addons_name . "...</info>");
         $command_params = [];
         // 包名
-        $packname         = $savename . '.back.' . date('YmdHis') . '.zip';
+        $packname         = $addons_name . '.back.' . date('YmdHis') . '.zip';
         $command_params[] = $packname;
         // 打包路径
-        $command_params[] = implode(self::DS, ['src', 'addons', $savename]);
+        $command_params[] = implode(self::DS, ['src', 'addons', $addons_name]);
         // 包保存路径
         $outpath          = 'public' . self::DS . 'addons' . self::DS;
         $command_params[] = '--outpath=' . $outpath;
@@ -183,10 +190,12 @@ class Update extends Command
             Console::call('zip:pack', $command_params);
             // 检测是否已经备份
             if (is_file($savepath . self::DS . $packname)) {
+                // 删除旧目录
+                $this->remove(ADDON_PATH . $addons_name);
                 return $packname;
             }
         } catch (\Exception $e) {
-            $output->writeln("<error>Backup error addons:" . $savename . ".Please try again.</error>");
+            $output->writeln("<error>Backup error addons:" . $addons_name . ".Please try again.</error>");
         }
         return false;
     }
@@ -197,14 +206,14 @@ class Update extends Command
      * @DateTime 2019-02-26
      * @return   [type]                         [description]
      */
-    protected function rollbackToAddons($savepath, $packname, $basename)
+    protected function rollbackToAddons($savepath, $packname, $addons_name)
     {
         if ($packname !== false) {
             $command_params   = [];
             $command_params[] = 'public' . self::DS . 'addons' . self::DS . $packname;
-            $command_params[] = '--outpath=' . implode(self::DS, ['src', 'addons', $basename]);
+            $command_params[] = '--outpath=' . implode(self::DS, ['src', 'addons', $addons_name]);
             Console::call('zip:unpack', $command_params);
-            if (is_dir(ADDON_PATH . $basename)) {
+            if (is_dir(ADDON_PATH . $addons_name)) {
                 unlink($savepath . self::DS . $packname);
             }
         }

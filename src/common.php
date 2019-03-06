@@ -44,58 +44,19 @@ Hook::add('app_init', function () {
 
 // 闭包初始化行为
 Hook::add('app_init', function () {
-    //注册路由
-    // $routeArr = (array)Config::get('addons.route');
-    // $domains = [];
-    // $rules = [];
-    // $execute = "\\think\\addons\\Route@execute?addon=%s&controller=%s&action=%s";
-    // foreach ($routeArr as $k => $v) {
-    //     if (is_array($v)) {
-    //         $addon = $v['addon'];
-    //         $domain = $v['domain'];
-    //         $drules = [];
-    //         foreach ($v['rule'] as $m => $n) {
-    //             list($addon, $controller, $action) = explode('/', $n);
-    //             $drules[$m] = sprintf($execute . '&indomain=1', $addon, $controller, $action);
-    //         }
-    //         //$domains[$domain] = $drules ? $drules : "\\addons\\{$k}\\controller";
-    //         $domains[$domain] = $drules ? $drules : [];
-    //         $domains[$domain][':controller/[:action]'] = sprintf($execute . '&indomain=1', $addon, ":controller", ":action");
-    //     } else {
-    //         if (!$v)
-    //             continue;
-    //         list($addon, $controller, $action) = explode('/', $v);
-    //         $rules[$k] = sprintf($execute, $addon, $controller, $action);
-    //     }
-    // }
-    // Route::rule($rules);
-    // if ($domains) {
-    //     Route::domain($domains);
-    // }
-
-    // // 获取系统配置
-    // $hooks = Config::get('debug') ? [] : Cache::get('hooks', []);
-    // if (empty($hooks)) {
-    //     $hooks = (array) Config::get('addons.hooks');
-    //     // 初始化钩子
-    //     foreach ($hooks as $key => $values) {
-    //         if (is_string($values)) {
-    //             $values = explode(',', $values);
-    //         } else {
-    //             $values = (array) $values;
-    //         }
-    //         $hooks[$key] = array_filter(array_map('get_addon_class', $values));
-    //     }
-    //     Cache::set('hooks', $hooks);
-    // }
-    // //如果在插件中有定义app_init，则直接执行
-    // if (isset($hooks['app_init'])) {
-    //     foreach ($hooks['app_init'] as $k => $v) {
-    //         Hook::exec($v, 'app_init');
-    //     }
-    // }
-    // Hook::import($hooks, true);
+    // 注册所有插件钩子
+    $addons = get_addon_list();
+    foreach ($addons as $addon) {
+        // 查找是否存在默认钩子
+        $addonDir = ADDON_PATH . $addon['name'] . DIRECTORY_SEPARATOR;
+        if(!is_file($addonDir.'behavior'.DIRECTORY_SEPARATOR.ucfirst($addon['name']).'.php')){
+            continue;
+        }
+        // 执行
+        Hook::exec(['addons\\'.$addon['name'].'\\behavior\\'.ucfirst($addon['name']),'appInit']);
+    }
 });
+
 
 /**
  * 处理插件钩子

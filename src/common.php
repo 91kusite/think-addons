@@ -55,7 +55,7 @@ Hook::add('app_init', function () {
 
         $className = 'addons\\'.$addon['name'].'\\behavior\\'.ucfirst($addon['name']);
         $methods = get_class_methods($className);
-        array_walk($methods, function($v) use($addon,$className){
+        array_walk($methods, function($v) use($className){
             $hook = Loader::parseName($v);
             // 当存在app_init钩子时,直接执行
             if($hook == 'app_init'){

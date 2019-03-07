@@ -52,8 +52,18 @@ Hook::add('app_init', function () {
         if(!is_file($addonDir.'behavior'.DIRECTORY_SEPARATOR.ucfirst($addon['name']).'.php')){
             continue;
         }
-        // 执行
-        Hook::exec(['addons\\'.$addon['name'].'\\behavior\\'.ucfirst($addon['name']),'appInit']);
+
+        $className = 'addons\\'.$addon['name'].'\\behavior\\'.ucfirst($addon['name']);
+        $methods = get_class_methods($className);
+        array_walk($methods, function($v) use($addon,$className){
+            $hook = Loader::parseName($v);
+            // 当存在app_init钩子时,直接执行
+            if($hook == 'app_init'){
+                Hook::exec([$className,'appInit']);
+            }else{
+                Hook::add(Loader::parseName($v),$className);
+            }
+        });
     }
 });
 

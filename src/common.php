@@ -61,7 +61,7 @@ Hook::add('app_init', function () {
             if($hook == 'app_init'){
                 Hook::exec([$className,'appInit']);
             }else{
-                Hook::add(Loader::parseName($v),$className);
+                Hook::add($hook,$className);
             }
         });
     }

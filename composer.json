@@ -1,6 +1,6 @@
 {
     "name": "91kusite/think-addons",
-    "description": "addons package for 91kusite",
+    "description": "addons for 91kusite",
     "type": "think-extend",
     "require": {
         "topthink/think-helper": ">=1.0.4",

@@ -63,6 +63,9 @@ EOT
             }
             // 备份已安装版本
             $packname = $this->backupToAddons($output, $zip_path, $addons_name);
+            if($packname === false){
+                return false;
+            }
             $is_sure  = true;
         }
 
@@ -84,7 +87,7 @@ EOT
             }
         } else {
             // 拼接备份包存放位置
-            $zip_name = $addons_name . '-back.' . $input->getOption('back');
+            $zip_name = $addons_name . '.back.' . $input->getOption('back');
         }
         // zip包识别
         (stripos($zip_name, '.zip') === false) && $zip_name .= '.zip';
@@ -103,6 +106,8 @@ EOT
             }
         }
         $output->writeln("<info>Please waiting...</info>");
+        // 备份成功,删除目录及文件
+        $packname && $this->remove(ADDON_PATH . $addons_name);
         // 执行解包
         try {
             // 开始解包命令处理
@@ -117,20 +122,23 @@ EOT
             Console::call('zip:unpack', $command_params);
             // 当前安装包信息
             $info_file = ADDON_PATH . $addons_name . self::DS . 'info.ini';
-            if (!is_file($info_file) || true !== Service::importsql($addons_name,'install')) {
-                // 删除目录及文件
-                $this->remove(ADDON_PATH . $addons_name);
-                // 恢复备份
-                $this->rollbackToAddons($zip_path, $packname, $addons_name);
+            if (!is_file($info_file)) {
                 throw new Exception('install error');
             }
+
+            $this->install($addons_name);
+
+            Service::importsql($addons_name,'install');
 
             // 加载配置文件
             $info           = Config::parse($info_file, '', "addon-info-{$addons_name}");
             $varsion        = $info['version'];
             $log[$addons_name] = $varsion;
         } catch (Exception $e) {
-            echo $e->getMessage();
+            // 删除目录及文件
+            $this->remove(ADDON_PATH . $addons_name);
+            // 恢复备份
+            $this->rollbackToAddons($zip_path, $packname, $addons_name);
             $output->writeln("<error>Install " . $addons_name . " addons error,Please try again.</error>");
             $log = [];
             return false;
@@ -207,10 +215,10 @@ EOT
             // 检测是否已经备份
             if (is_file($savepath . self::DS . $packname)) {
                 // 删除旧目录
-                $this->remove(ADDON_PATH . $addons_name);
+                // $this->remove(ADDON_PATH . $addons_name);
                 return $packname;
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $output->writeln("<error>Backup error addons:" . $addons_name . ".Please try again.</error>");
         }
         return false;
@@ -232,6 +240,26 @@ EOT
             if (is_dir(ADDON_PATH . $addons_name)) {
                 unlink($savepath . self::DS . $packname);
             }
+        }
+    }
+
+    /**
+     * 执行插件内部的安装方法
+     * @Author   Martinsun<syh@sunyonghong.com>
+     * @DateTime 2019-03-08
+     * @param    [type]                         $addons_name [description]
+     * @return   [type]                                      [description]
+     */
+    protected function install($addons_name){
+        
+        try{
+            $class = get_addon_class($addons_name);
+            if (class_exists($class)) {
+                $addon = new $class();
+                $addon->install();
+            }
+        }catch(Exception $e){
+            throw new Exception($e->getMessage());
         }
     }
 

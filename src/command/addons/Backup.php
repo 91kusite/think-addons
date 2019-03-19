@@ -44,7 +44,7 @@ class Backup extends Command
         // 开始打包命令处理
         $command_params = [];
         // 包名
-        $command_params[] = $addons_name . '-back.' . date('YmdHis') . '.zip';
+        $command_params[] = $addons_name . '.back.' . date('YmdHis') . '.zip';
         // 打包路径
         $command_params[] = implode(self::DS, ['src', 'addons', $addons_name]);
         if ($input->hasOption('password')) {

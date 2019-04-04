@@ -6,6 +6,7 @@ use think\facade\Config;
 use think\facade\Env;
 use think\facade\Exception;
 use think\facade\Hook;
+use think\facade\Route;
 use think\Loader;
 
 // 插件目录
@@ -49,24 +50,23 @@ Hook::add('app_init', function () {
     foreach ($addons as $addon) {
         // 查找是否存在默认钩子
         $addonDir = ADDON_PATH . $addon['name'] . DIRECTORY_SEPARATOR;
-        if(!is_file($addonDir.'behavior'.DIRECTORY_SEPARATOR.ucfirst($addon['name']).'.php')){
+        if (!is_file($addonDir . 'behavior' . DIRECTORY_SEPARATOR . ucfirst($addon['name']) . '.php')) {
             continue;
         }
 
-        $className = 'addons\\'.$addon['name'].'\\behavior\\'.ucfirst($addon['name']);
-        $methods = get_class_methods($className);
-        array_walk($methods, function($v) use($className){
+        $className = 'addons\\' . $addon['name'] . '\\behavior\\' . ucfirst($addon['name']);
+        $methods   = get_class_methods($className);
+        array_walk($methods, function ($v) use ($className) {
             $hook = Loader::parseName($v);
             // 当存在app_init钩子时,直接执行
-            if($hook == 'app_init'){
-                Hook::exec([$className,'appInit']);
-            }else{
-                Hook::add($hook,$className);
+            if ($hook == 'app_init') {
+                Hook::exec([$className, 'appInit']);
+            } else {
+                Hook::add($hook, $className);
             }
         });
     }
 });
-
 
 /**
  * 处理插件钩子
